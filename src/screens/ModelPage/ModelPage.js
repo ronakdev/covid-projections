@@ -99,26 +99,8 @@ let lowercaseStates = [
   'WA',
 ];
 
-function ModelPage() {
-  const { id: location } = useParams();
-  const locationName = STATES[location];
-  const intervention = STATE_TO_INTERVENTION[location];
-
-  let locationNameForDataLoad = location;
-
-  if (lowercaseStates.indexOf(location) > -1) {
-    locationNameForDataLoad = location.toLowerCase();
-  }
-  let modelDatas = useModelDatas(locationNameForDataLoad);
-  const shareURL = `https://covidactnow.org/state/${location}`;
-  const shareQuote = `This is the point of no return for intervention to prevent ${locationName}'s hospital system from being overloaded by Coronavirus: `;
-  const hashtag = 'COVIDActNow';
-
-  if (!modelDatas) {
-    return <Header locationName={locationName} intervention={intervention} />;
-  }
-
-  // Initialize models
+// Exported for use by CompareModels screen.
+export function initializeModels(modelDatas) {
   let baseline = new Model(modelDatas.baseline, {
     intervention: 'No Action',
     r0: 2.4,
@@ -145,26 +127,55 @@ function ModelPage() {
     }),
   };
 
-  const interventionToModel = {
-    [INTERVENTIONS.NO_ACTION]: baseline,
-    [INTERVENTIONS.SOCIAL_DISTANCING]: distancingPoorEnforcement.now,
-    [INTERVENTIONS.SHELTER_IN_PLACE]: distancing.now,
-  };
+  return { baseline, distancing, distancingPoorEnforcement, contain };
+}
 
+// Exported for use by CompareModels screen.
+export function getChartData(models) {
   // Prep datasets for graphs
   // short label: 'Distancing Today for 2 Months', 'Wuhan Level Containment for 1 Month'
   let scenarioComparisonOverTime = duration => [
-    baseline.getDataset('hospitalizations', duration, 'red'),
-    distancing.now.getDataset('hospitalizations', duration, 'blue'),
-    distancingPoorEnforcement.now.getDataset(
+    models.baseline.getDataset('hospitalizations', duration, 'red'),
+    models.distancing.now.getDataset('hospitalizations', duration, 'blue'),
+    models.distancingPoorEnforcement.now.getDataset(
       'hospitalizations',
       duration,
       'orange',
     ),
-    contain.now.getDataset('hospitalizations', duration, 'green'),
-    baseline.getDataset('beds', duration, 'black', 'Available Hospital Beds'),
+    models.contain.now.getDataset('hospitalizations', duration, 'green'),
+    models.baseline.getDataset('beds', duration, 'black', 'Available Hospital Beds'),
   ];
-  let scenarioComparison = scenarioComparisonOverTime(100);
+  return scenarioComparisonOverTime(100);
+}
+
+function ModelPage() {
+  const { id: location } = useParams();
+  const locationName = STATES[location];
+  const intervention = STATE_TO_INTERVENTION[location];
+
+  let locationNameForDataLoad = location;
+
+  if (lowercaseStates.indexOf(location) > -1) {
+    locationNameForDataLoad = location.toLowerCase();
+  }
+  let modelDatas = useModelDatas(locationNameForDataLoad);
+  const shareURL = `https://covidactnow.org/state/${location}`;
+  const shareQuote = `This is the point of no return for intervention to prevent ${locationName}'s hospital system from being overloaded by Coronavirus: `;
+  const hashtag = 'COVIDActNow';
+
+  if (!modelDatas) {
+    return <Header locationName={locationName} intervention={intervention} />;
+  }
+
+  // Initialize models
+  const models = initializeModels(modelDatas);
+  const interventionToModel = {
+    [INTERVENTIONS.NO_ACTION]: models.baseline,
+    [INTERVENTIONS.SOCIAL_DISTANCING]: models.distancingPoorEnforcement.now,
+    [INTERVENTIONS.SHELTER_IN_PLACE]: models.distancing.now,
+  };
+
+  const scenarioComparison = getChartData(models);
 
   return (
     <Wrapper>
@@ -175,7 +186,7 @@ function ModelPage() {
             state={locationName}
             subtitle="Hospitalizations over time"
             data={scenarioComparison}
-            dateOverwhelmed={baseline.dateOverwhelmed}
+            dateOverwhelmed={models.baseline.dateOverwhelmed}
           />
 
           <CallToAction
@@ -218,10 +229,10 @@ function ModelPage() {
           <OutcomesTable
             title="Predicted Outcomes after 3 Months"
             models={[
-              baseline,
-              distancingPoorEnforcement.now,
-              distancing.now,
-              contain.now,
+              models.baseline,
+              models.distancingPoorEnforcement.now,
+              models.distancing.now,
+              models.contain.now,
             ]}
             colors={['red', 'orange', 'blue', 'green']}
             asterisk={['', '*', '*', '**']}
