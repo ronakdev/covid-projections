@@ -10,26 +10,73 @@ import { Wrapper } from './Chart.style';
 const formatIntervention = intervention => `3 months of ${intervention}`;
 
 const Chart = ({ state, subtitle, data, dateOverwhelmed }) => {
+  const extraLines = [];
   const noAction = {
     name: INTERVENTIONS.NO_ACTION,
     type: 'area',
     data: data[0].data,
   };
+  if (data[0].dateOverwhelmed !== null) {
+    extraLines.push({
+      value: data[0].dateOverwhelmed,
+      className: 'highcharts-series-0-line',
+      label: {
+        text: 'Hospitals Overloaded',
+        x: 10,
+        y: 20,
+      }
+    })
+  }
   const socialDistancing = {
     name: formatIntervention(INTERVENTIONS.SOCIAL_DISTANCING),
     type: 'area',
     data: data[2].data,
   };
+  if (data[2].dateOverwhelmed !== null) {
+    extraLines.push({
+      value: data[2].dateOverwhelmed,
+      className: 'highcharts-series-1-line',
+      label: {
+        text: 'Hospitals Overloaded',
+        x: 10,
+        y: 20,
+      }
+    })
+  }
   const shelterInPlace = {
     name: formatIntervention(INTERVENTIONS.SHELTER_IN_PLACE),
     type: 'area',
     data: data[1].data,
   };
+  if (data[1].dateOverwhelmed !== null) {
+    extraLines.push({
+      value: data[1].dateOverwhelmed,
+      className: 'highcharts-series-2-line',
+      label: {
+        rotation: 0,
+        text: 'Hospitals Overloaded <br/> (shelter in place)',
+        x: 10,
+        y: 20,
+      }
+    })
+  }
   const wuhanStyle = {
     name: formatIntervention(INTERVENTIONS.LOCKDOWN),
     type: 'area',
     data: data[3].data,
   };
+  if (data[3].dateOverwhelmed !== null) {
+    extraLines.push({
+      value: data[3].dateOverwhelmed,
+      className: 'highcharts-series-3-line',
+      label: {
+        rotation: 0,
+        text: 'Hospitals Overloaded <br/> (lockdown)',
+        x: 10,
+        y: 20,
+      }
+    })
+  }
   const availableBeds = {
     name: 'Available Hospital Beds',
     color: 'black',
@@ -73,15 +120,7 @@ const Chart = ({ state, subtitle, data, dateOverwhelmed }) => {
         },
       },
       plotLines: [
-        {
-          value: dateOverwhelmed,
-          label: {
-            rotation: 0,
-            text: 'Hospitals Overloaded <br/> (assuming no action)',
-            x: 10,
-            y: 20,
-          },
-        },
+        ...extraLines,
         {
           value: Date.now(),
           className: 'today',
